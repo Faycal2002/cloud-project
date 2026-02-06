@@ -12,7 +12,7 @@ function Login() {
     return (
         <div className="p-12 max-w-6xl mx-auto">
             <div className="max-w-md mx-auto bg-white p-8 rounded-lg shadow-lg">
-                <h1 className="text-3xl font-bold mb-6 text-center">Connexion</h1>
+                <h1 className="text-3xl font-bold mb-6 text-center">Login</h1>
                 <form onSubmit={handleSubmit} className="flex flex-col gap-4">
                     <input
                         type="email"
@@ -34,7 +34,7 @@ function Login() {
                         type="submit"
                         className="px-4 py-3 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition font-medium"
                     >
-                        Se connecter
+                        Sign In
                     </button>
                 </form>
             </div>
