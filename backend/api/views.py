@@ -1,7 +1,8 @@
 from rest_framework import viewsets
-from .models import Value
-from .serializers import ValueSerializer
+from .models import Device
+from .serializers import DeviceSerializer
 
-class ValueViewSet(viewsets.ModelViewSet):
-    queryset = Value.objects.all()
-    serializer_class = ValueSerializer
+
+class DeviceViewSet(viewsets.ModelViewSet):
+    queryset = Device.objects.all()
+    serializer_class = DeviceSerializer

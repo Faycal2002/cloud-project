@@ -1,7 +1,7 @@
 from rest_framework import serializers
-from .models import Value
+from .models import Device
 
-class ValueSerializer(serializers.ModelSerializer) :
+class DeviceSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Value
+        model = Device
         fields = '__all__'

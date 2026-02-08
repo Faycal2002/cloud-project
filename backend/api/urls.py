@@ -1,11 +1,8 @@
 from rest_framework.routers import DefaultRouter
-from .views import ValueViewSet
+from .views import DeviceViewSet
 
 
 router = DefaultRouter()
-router.register(r'values', ValueViewSet)
+router.register(r'devices', DeviceViewSet)
 
 urlpatterns = router.urls
-
-
-
