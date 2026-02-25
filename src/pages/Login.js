@@ -1,3 +1,4 @@
+import {Link} from "react-router-dom";
 import { useState } from 'react';
 
 function Login() {
@@ -30,12 +31,17 @@ function Login() {
                         className="px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                         required
                     />
-                    <button
+                    <button 
                         type="submit"
                         className="px-4 py-3 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition font-medium"
                     >
                         Sign In
                     </button>
+                    <Link to ="/Register"  className="flex justify-center">
+                    <button type="button">Register as a client</button>
+                    </Link>
+                    <Link to = "/dashboard">
+                    <button> dashboard</button></Link>
                 </form>
             </div>
         </div>
