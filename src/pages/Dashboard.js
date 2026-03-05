@@ -2,10 +2,12 @@ import SideMenu from "../components/SideMenu";
 
 function Dashboard() {
   return (
-    <div className="flex bg-gray-100 min-h-screen">
+    <div className="flex min-h-screen">
       <SideMenu />
 
-      <div className="p-10 w-full">
+      <div className="flex flex-col flex-1">
+      <main className="flex-1 px-12 pt-12">
+
         {/* Header */}
         <div className="mb-10">
           <h1 className="text-3xl font-bold text-gray-800 mb-2">
@@ -156,6 +158,8 @@ function Dashboard() {
             </div>
           </div>
         </div>
+      </main>
+
       </div>
     </div>
   );

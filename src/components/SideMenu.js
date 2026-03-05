@@ -2,7 +2,8 @@ import { NavLink } from "react-router-dom";
 
 function SideMenu() {
   return (
-    <div className="w-64 min-w-64 flex-shrink-0 h-screen bg-gray-800 text-white p-4">
+    <div className="w-64 min-w-64 flex-shrink-0 min-h-screen bg-gray-800 text-white p-4">
+
 
       <ul className="mt-4 flex flex-col gap-3 w-full">
 
