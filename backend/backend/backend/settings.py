@@ -76,23 +76,42 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'mssql',
-        'NAME': config('DB_NAME'),
-        'USER': config('DB_USER'),
-        'PASSWORD': config('DB_PASSWORD'),
-        'HOST': config('DB_HOST'),
-        'PORT': config('DB_PORT'),
-        'OPTIONS': {
-            'driver': 'ODBC Driver 18 for SQL Server',
-        },
+DB_ENGINE = config('DB_ENGINE', default='sqlite').strip().lower()
+
+if DB_ENGINE == 'mssql':
+    db_host = config('DB_HOST')
+    db_port = config('DB_PORT', default='1433')
+
+    DATABASES = {
+        'default': {
+            'ENGINE': 'mssql',
+            'NAME': config('DB_NAME'),
+            'USER': config('DB_USER'),
+            'PASSWORD': config('DB_PASSWORD'),
+            'HOST': f'tcp:{db_host},{db_port}',
+            'OPTIONS': {
+                'driver': 'ODBC Driver 18 for SQL Server',
+                'extra_params': 'Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;',
+            },
+        }
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 
 EVENT_HUB_CONNECTION_STRING = config('EVENT_HUB_CONNECTION_STRING', default='')
 EVENT_HUB_NAME = config('EVENT_HUB_NAME', default='')
+
+# Device ingestion mode:
+# - True  => force all incoming readings to one logical device
+# - False => keep incoming device_id from payloads
+SINGLE_DEVICE_MODE = config('SINGLE_DEVICE_MODE', cast=bool, default=True)
+PRIMARY_DEVICE_ID = config('PRIMARY_DEVICE_ID', default='device-1')
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators

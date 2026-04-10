@@ -1,13 +1,20 @@
 import json
+from datetime import datetime, timezone
 from azure.eventhub import EventHubConsumerClient
 from django.conf import settings
 from .services import process_sensor_data
 
 CONSUMER_GROUP = "$Default"
 
+LISTENER_STARTED_AT = datetime.now(timezone.utc)
+
 
 def on_event(partition_context, event):
     try:
+        enqueued_time = getattr(event, "enqueued_time", None)
+        if enqueued_time and enqueued_time < LISTENER_STARTED_AT:
+            return
+
         body = event.body_as_str(encoding="UTF-8")
         data = json.loads(body)
 
@@ -36,5 +43,5 @@ def start_iot_listener():
     with client:
         client.receive(
             on_event=on_event,
-            starting_position="-1",
+            starting_position="@latest",
         )

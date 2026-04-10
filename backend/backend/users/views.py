@@ -46,7 +46,18 @@ def register_user(request):
             last_name=last_name,
         )
         login(request, user)
-        return JsonResponse({"message": "User registered successfully"}, status=201)
+        return JsonResponse(
+            {
+                "message": "User registered successfully",
+                "user": {
+                    "firstName": user.first_name,
+                    "lastName": user.last_name,
+                    "email": user.email,
+                    "username": user.username,
+                },
+            },
+            status=201,
+        )
 
     except Exception as e:
         return JsonResponse({"error": f"Registration failed: {str(e)}"}, status=500)
@@ -75,7 +86,18 @@ def login_user(request):
         return JsonResponse({"error": "Invalid email or password"}, status=400)
 
     login(request, user)
-    return JsonResponse({"message": "Login successful"}, status=200)
+    return JsonResponse(
+        {
+            "message": "Login successful",
+            "user": {
+                "firstName": user.first_name,
+                "lastName": user.last_name,
+                "email": user.email,
+                "username": user.username,
+            },
+        },
+        status=200,
+    )
 
 
 @csrf_exempt
@@ -121,17 +143,17 @@ def add_reading(request):
     humidity = data.get("humidity")
 
     is_alert = False
-    alert_message = ""
+    alert_message = "OK: Temperature and humidity are within normal range"
 
     if temperature > 30 and humidity > 70:
         is_alert = True
-        alert_message = "High temperature and humidity detected"
+        alert_message = "CRITICAL: High temperature and high humidity detected"
     elif temperature > 30:
         is_alert = True
-        alert_message = "High temperature detected"
+        alert_message = "WARNING: High temperature detected"
     elif humidity > 70:
         is_alert = True
-        alert_message = "High humidity detected"
+        alert_message = "WARNING: High humidity detected"
 
     serializer.save(
         is_alert=is_alert,
