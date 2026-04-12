@@ -168,3 +168,24 @@ def add_reading(request):
         },
         status=201,
     )
+
+@csrf_exempt
+def save_image(request):
+    if request.method != "POST":
+        return JsonResponse({"error": "Only POST allowed"}, status=405)
+
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
+
+    url = data.get("url")
+
+    if not url:
+        return JsonResponse({"error": "URL is required"}, status=400)
+
+    from .models import Image  # import ici pour éviter conflits
+
+    Image.objects.create(url=url)
+
+    return JsonResponse({"message": "Image saved"}, status=201)

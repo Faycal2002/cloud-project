@@ -2,7 +2,6 @@ from django.db import models
 from django.utils import timezone
 from django.utils.timezone import localtime
 
-# Create your models here.
 
 class SensorReading(models.Model):
     temperature = models.FloatField()
@@ -15,4 +14,10 @@ class SensorReading(models.Model):
     def __str__(self):
         return f"{self.device_id} @ {localtime(self.created_at).strftime('%d/%m/%Y %H:%M:%S')}"
 
-      
+
+class Image(models.Model):
+    url = models.URLField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.url
