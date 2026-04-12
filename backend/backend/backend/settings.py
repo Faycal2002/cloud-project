@@ -107,6 +107,9 @@ else:
 EVENT_HUB_CONNECTION_STRING = config('EVENT_HUB_CONNECTION_STRING', default='')
 EVENT_HUB_NAME = config('EVENT_HUB_NAME', default='')
 
+AZURE_STORAGE_CONNECTION_STRING = config('AZURE_STORAGE_CONNECTION_STRING', default='')
+AZURE_STORAGE_SAS_EXPIRY_MINUTES = config('AZURE_STORAGE_SAS_EXPIRY_MINUTES', cast=int, default=15)
+
 # Device ingestion mode:
 # - True  => force all incoming readings to one logical device
 # - False => keep incoming device_id from payloads

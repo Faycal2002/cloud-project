@@ -4,18 +4,25 @@ import { api } from "../utils/api";
 import { formatFullDateTime } from "../utils/date";
 
 function Devices() {
-  const [history, setHistory] = useState([]);
+  const [sensorHistory, setSensorHistory] = useState([]);
+  const [cameraHistory, setCameraHistory] = useState([]);
   const [error, setError] = useState("");
   const [showHistory, setShowHistory] = useState(false);
+  const [selectedDevice, setSelectedDevice] = useState("sensor");
 
   useEffect(() => {
     let mounted = true;
 
     const loadReadings = async () => {
       try {
-        const data = await api.getReadingsHistory();
+        const [sensorData, cameraData] = await Promise.all([
+          api.getReadingsHistory(),
+          api.getCameraEvents(),
+        ]);
+
         if (!mounted) return;
-        setHistory(Array.isArray(data) ? data : []);
+        setSensorHistory(Array.isArray(sensorData) ? sensorData : []);
+        setCameraHistory(Array.isArray(cameraData) ? cameraData : []);
         setError("");
       } catch (err) {
         if (!mounted) return;
@@ -38,20 +45,31 @@ function Devices() {
     return "OK";
   };
 
-  const deviceRows = useMemo(() => {
-    return history.filter((item) => (item.device_id || "unknown-device") === "device-1");
-  }, [history]);
+  const sensorRows = useMemo(() => {
+    return sensorHistory.filter((item) => (item.device_id || "unknown-device") === "device-1");
+  }, [sensorHistory]);
 
-  const selectedRows = deviceRows.length > 0 ? deviceRows : history;
+  const cameraRows = useMemo(() => {
+    return cameraHistory.filter((item) => (item.device_id || "camera-1") === "camera-1");
+  }, [cameraHistory]);
 
-  const selectedDeviceId = selectedRows[0]?.device_id || "device-1";
+  const selectedRows = selectedDevice === "sensor"
+    ? (sensorRows.length > 0 ? sensorRows : sensorHistory)
+    : (cameraRows.length > 0 ? cameraRows : cameraHistory);
+
+  const selectedDeviceId = selectedDevice === "sensor"
+    ? (selectedRows[0]?.device_id || "device-1")
+    : (selectedRows[0]?.device_id || "camera-1");
 
   const latestReading = selectedRows[0] || null;
-  const latestStatus = latestReading ? getStatus(latestReading.alert_message) : "NO DATA";
+  const latestStatus = selectedDevice === "sensor"
+    ? (latestReading ? getStatus(latestReading.alert_message) : "NO DATA")
+    : (latestReading ? (latestReading.motion_detected ? "MOTION" : "NO MOTION") : "NO DATA");
 
   const badgeClass = (status) => {
     if (status === "CRITICAL") return "bg-red-100 text-red-700";
     if (status === "WARNING") return "bg-amber-100 text-amber-700";
+    if (status === "MOTION") return "bg-blue-100 text-blue-700";
     return "bg-green-100 text-green-700";
   };
 
@@ -64,6 +82,34 @@ function Devices() {
           <div>
             <h1 className="text-3xl md:text-4xl font-bold text-gray-800">Device Readings</h1>
           </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          <button
+            type="button"
+            onClick={() => {
+              setSelectedDevice("sensor");
+              setShowHistory(true);
+            }}
+            className={`text-left rounded-xl border p-4 transition ${selectedDevice === "sensor" ? "border-blue-400 bg-blue-50" : "border-gray-200 bg-white hover:border-gray-300"}`}
+          >
+            <p className="text-sm text-gray-500">Device</p>
+            <h3 className="text-xl font-semibold text-gray-900">device-1</h3>
+            <p className="text-sm text-gray-600 mt-1">Sensor (temperature / humidity)</p>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setSelectedDevice("camera");
+              setShowHistory(true);
+            }}
+            className={`text-left rounded-xl border p-4 transition ${selectedDevice === "camera" ? "border-blue-400 bg-blue-50" : "border-gray-200 bg-white hover:border-gray-300"}`}
+          >
+            <p className="text-sm text-gray-500">Device</p>
+            <h3 className="text-xl font-semibold text-gray-900">camera-1</h3>
+            <p className="text-sm text-gray-600 mt-1">Camera (movement photos in Blob Storage)</p>
+          </button>
         </div>
 
         <button
@@ -80,9 +126,11 @@ function Devices() {
             <div>
               <p className="text-sm text-gray-500">Latest reading</p>
               <p className="text-sm font-semibold text-gray-800 mt-1">
-                {latestReading
-                  ? `${Number(latestReading.temperature).toFixed(1)}°C / ${Number(latestReading.humidity).toFixed(1)}%`
-                  : "No data"}
+                {selectedDevice === "sensor"
+                  ? (latestReading
+                    ? `${Number(latestReading.temperature).toFixed(1)}°C / ${Number(latestReading.humidity).toFixed(1)}%`
+                    : "No data")
+                  : (latestReading ? "Photo event received" : "No data")}
               </p>
             </div>
 
@@ -106,10 +154,19 @@ function Devices() {
               <thead>
                 <tr className="text-[#64748b] font-semibold text-xs uppercase tracking-wider border-b border-gray-200">
                   <th className="pl-6 pr-2 py-4 text-left">Device ID</th>
-                  <th className="px-2 py-4 text-left">Temperature</th>
-                  <th className="px-2 py-4 text-left">Humidity</th>
+                  {selectedDevice === "sensor" ? (
+                    <>
+                      <th className="px-2 py-4 text-left">Temperature</th>
+                      <th className="px-2 py-4 text-left">Humidity</th>
+                    </>
+                  ) : (
+                    <>
+                      <th className="px-2 py-4 text-left">Movement</th>
+                      <th className="px-2 py-4 text-left">Photo Link</th>
+                    </>
+                  )}
                   <th className="px-2 py-4 text-left">Status</th>
-                  <th className="px-2 py-4 text-left">Message</th>
+                  <th className="px-2 py-4 text-left">Details</th>
                   <th className="px-2 py-4 text-left">Date et heure</th>
                 </tr>
               </thead>
@@ -122,18 +179,31 @@ function Devices() {
                   </tr>
                 ) : (
                   selectedRows.map((item) => {
-                    const status = getStatus(item.alert_message);
+                    const status = selectedDevice === "sensor"
+                      ? getStatus(item.alert_message)
+                      : (item.motion_detected ? "MOTION" : "NO MOTION");
                     return (
                       <tr key={item.id} className="border-b border-gray-100 hover:bg-gray-50/50">
                         <td className="pl-6 pr-2 py-3 font-mono text-xs font-medium">{item.device_id || "unknown-device"}</td>
-                        <td className="px-2 py-3">{Number(item.temperature).toFixed(1)}°C</td>
-                        <td className="px-2 py-3">{Number(item.humidity).toFixed(1)}%</td>
+                        {selectedDevice === "sensor" ? (
+                          <>
+                            <td className="px-2 py-3">{Number(item.temperature).toFixed(1)}°C</td>
+                            <td className="px-2 py-3">{Number(item.humidity).toFixed(1)}%</td>
+                          </>
+                        ) : (
+                          <>
+                            <td className="px-2 py-3">{item.motion_detected ? "Detected" : "Not detected"}</td>
+                            <td className="px-2 py-3 text-blue-600 underline">
+                              <a href={item.access_url || item.url} target="_blank" rel="noreferrer">Open photo</a>
+                            </td>
+                          </>
+                        )}
                         <td className="px-2 py-3">
                           <span className={`px-3 py-1 rounded-full text-xs font-medium ${badgeClass(status)}`}>
                             {status}
                           </span>
                         </td>
-                        <td className="px-2 py-3 text-gray-600">{item.alert_message || "OK"}</td>
+                        <td className="px-2 py-3 text-gray-600">{selectedDevice === "sensor" ? (item.alert_message || "OK") : "Blob Storage image URL"}</td>
                         <td className="px-2 py-3 text-xs text-gray-500">
                           {formatFullDateTime(item.created_at)}
                         </td>

@@ -1,7 +1,7 @@
 from django.urls import path
 from . import views
 from .views import register_user, login_user, logout_user
-from .views import save_image
+from .views import camera_events
 
 app_name = "users"
 
@@ -14,7 +14,7 @@ urlpatterns = [
     path('register/', register_user, name='register'),
     path('login/', login_user, name='login'),
     path('logout/', logout_user, name='logout'),
-    path("images/", save_image),
+    path("images/", camera_events),
 ]
 
 

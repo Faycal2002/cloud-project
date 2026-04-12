@@ -52,4 +52,22 @@ export const api = {
         const response = await fetch(`${API_URL}/history/`);
         return parseJson(response);
     },
+
+    getCameraEvents: async () => {
+        const response = await fetch(`${API_URL}/images/`);
+        return parseJson(response);
+    },
+
+    saveCameraEvent: async (url, deviceId = 'camera-1', motionDetected = true) => {
+        const response = await fetch(`${API_URL}/images/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                url,
+                device_id: deviceId,
+                motion_detected: motionDetected,
+            }),
+        });
+        return parseJson(response);
+    },
 };

@@ -6,6 +6,7 @@ import { formatFullDateTime } from "../utils/date";
 function Dashboard() {
   const [latest, setLatest] = useState(null);
   const [history, setHistory] = useState([]);
+  const [cameraHistory, setCameraHistory] = useState([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
 
@@ -14,14 +15,16 @@ function Dashboard() {
 
     const fetchLiveData = async () => {
       try {
-        const [latestData, historyData] = await Promise.all([
+        const [latestData, historyData, cameraData] = await Promise.all([
           api.getLatestReading(),
           api.getReadingsHistory(),
+          api.getCameraEvents(),
         ]);
 
         if (!isMounted) return;
         setLatest(latestData?.message ? null : latestData);
         setHistory(Array.isArray(historyData) ? historyData : []);
+        setCameraHistory(Array.isArray(cameraData) ? cameraData : []);
         setError("");
       } catch (err) {
         if (!isMounted) return;
@@ -41,17 +44,29 @@ function Dashboard() {
   }, []);
 
   const activeDevices = useMemo(() => {
-    return new Set(history.map((item) => item.device_id || "unknown-device")).size;
-  }, [history]);
+    const sensorDeviceIds = history.map((item) => item.device_id || "unknown-device");
+    const cameraDeviceIds = cameraHistory.map((item) => item.device_id || "camera-1");
+    return new Set([...sensorDeviceIds, ...cameraDeviceIds]).size;
+  }, [history, cameraHistory]);
 
   const latestTime = formatFullDateTime(latest?.created_at);
+  const latestCameraEvent = cameraHistory[0] || null;
+  const latestCameraTime = formatFullDateTime(latestCameraEvent?.created_at);
 
   const readingAgeMs = latest?.created_at ? Date.now() - new Date(latest.created_at).getTime() : null;
   const isFreshReading = readingAgeMs !== null && readingAgeMs >= 0 && readingAgeMs <= 120000;
+  const noIncomingSensorData = !isFreshReading;
+
+  const cameraAgeMs = latestCameraEvent?.created_at ? Date.now() - new Date(latestCameraEvent.created_at).getTime() : null;
+  const isFreshCameraEvent = cameraAgeMs !== null && cameraAgeMs >= 0 && cameraAgeMs <= 300000;
 
   const liveReadingLabel = latest && isFreshReading
     ? `LIVE READING: ${Number(latest.temperature).toFixed(1)}°C / ${Number(latest.humidity).toFixed(1)}%`
     : "NO LIVE READING RECEIVED YET";
+
+  const currentStatusLabel = noIncomingSensorData
+    ? "NO RECEIVING DATA FROM IOT HUB"
+    : (latest?.alert_message || "OK");
 
   const statusColor = (message = "") => {
     if (message.startsWith("CRITICAL")) return "text-red-600";
@@ -77,6 +92,9 @@ function Dashboard() {
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-gray-800 mb-2">Dashboard Overview</h1>
             <p className="text-sm text-gray-500 mt-1">Last update: {latestTime}</p>
+            {noIncomingSensorData && (
+              <p className="text-sm text-red-600 mt-2 font-medium">NO RECEIVING DATA FROM IOT HUB</p>
+            )}
           </div>
 
           {error && (
@@ -107,12 +125,12 @@ function Dashboard() {
 
             <div className="bg-white p-6 rounded-xl shadow">
               <p className="text-gray-500">Current Status</p>
-              <h2 className={`text-lg font-bold mt-2 ${statusColor(latest?.alert_message)}`}>
-                {latest?.alert_message || "No data yet"}
+              <h2 className={`text-lg font-bold mt-2 ${noIncomingSensorData ? 'text-red-600' : statusColor(latest?.alert_message)}`}>
+                {currentStatusLabel}
               </h2>
             </div>
 
-            <div className={`bg-white p-6 rounded-xl shadow border ${latest ? 'border-green-200' : 'border-red-300'}`}>
+            <div className="bg-white p-6 rounded-xl shadow">
               <p className="text-gray-500">Live Reading</p>
               <h2 className={`text-lg font-bold mt-2 ${isFreshReading ? 'text-green-600' : 'text-red-600'}`}>
                 {liveReadingLabel}
@@ -120,6 +138,24 @@ function Dashboard() {
               <p className={`text-sm mt-1 ${isFreshReading ? 'text-green-500' : 'text-red-500'}`}>
                 {isFreshReading ? 'Sensor stream active' : 'No recent sensor stream'}
               </p>
+            </div>
+
+            <div className="bg-white p-6 rounded-xl shadow">
+              <p className="text-gray-500">Last Camera Picture</p>
+              <h2 className="text-lg font-bold mt-2 text-gray-900">{latestCameraTime}</h2>
+              <p className={`text-sm mt-1 ${isFreshCameraEvent ? 'text-gray-600' : 'text-red-500'}`}>
+                {latestCameraEvent ? (isFreshCameraEvent ? 'Motion event saved' : 'No recent camera data') : 'No camera image yet'}
+              </p>
+              {latestCameraEvent && (
+                <a
+                  href={latestCameraEvent.access_url || latestCameraEvent.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-block mt-2 text-sm text-blue-600 hover:text-blue-700"
+                >
+                  Open latest photo
+                </a>
+              )}
             </div>
           </div>
 

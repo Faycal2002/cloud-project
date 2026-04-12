@@ -16,8 +16,10 @@ class SensorReading(models.Model):
 
 
 class Image(models.Model):
+    device_id = models.CharField(max_length=100, default="camera-1")
+    motion_detected = models.BooleanField(default=True)
     url = models.URLField()
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return self.url
+        return f"{self.device_id} @ {localtime(self.created_at).strftime('%d/%m/%Y %H:%M:%S')}"

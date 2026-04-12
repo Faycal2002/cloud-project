@@ -1,14 +1,61 @@
 import json
+from datetime import datetime, timedelta, timezone
+from urllib.parse import urlparse
 
 from django.contrib.auth import authenticate, login, logout
+from django.conf import settings
 from django.contrib.auth.models import User
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
+from azure.storage.blob import BlobSasPermissions, generate_blob_sas
 
-from .models import SensorReading
-from .serializers import SensorReadingSerializer
+from .models import SensorReading, Image
+from .serializers import SensorReadingSerializer, ImageSerializer
+
+
+def _extract_conn_value(connection_string, key):
+    for part in connection_string.split(";"):
+        if "=" not in part:
+            continue
+        current_key, current_value = part.split("=", 1)
+        if current_key.strip().lower() == key.lower():
+            return current_value.strip()
+    return ""
+
+
+def _build_signed_blob_url(blob_url):
+    connection_string = settings.AZURE_STORAGE_CONNECTION_STRING
+    if not connection_string:
+        return blob_url
+
+    account_name = _extract_conn_value(connection_string, "AccountName")
+    account_key = _extract_conn_value(connection_string, "AccountKey")
+    if not account_name or not account_key:
+        return blob_url
+
+    parsed = urlparse(blob_url)
+    path_parts = parsed.path.lstrip("/").split("/", 1)
+    if len(path_parts) != 2:
+        return blob_url
+
+    container_name, blob_name = path_parts
+    expiry = datetime.now(timezone.utc) + timedelta(minutes=settings.AZURE_STORAGE_SAS_EXPIRY_MINUTES)
+
+    sas_token = generate_blob_sas(
+        account_name=account_name,
+        container_name=container_name,
+        blob_name=blob_name,
+        account_key=account_key,
+        permission=BlobSasPermissions(read=True),
+        expiry=expiry,
+    )
+
+    if not sas_token:
+        return blob_url
+
+    return f"{parsed.scheme}://{parsed.netloc}{parsed.path}?{sas_token}"
 
 
 @csrf_exempt
@@ -124,8 +171,8 @@ def latest_reading(request):
 
 @api_view(["GET"])
 def readings_history(request):
-    """Return the 20 most recent sensor readings."""
-    readings = SensorReading.objects.order_by("-created_at")[:20]
+    """Return sensor readings ordered by newest first."""
+    readings = SensorReading.objects.order_by("-created_at")
     serializer = SensorReadingSerializer(readings, many=True)
     return Response(serializer.data, status=200)
 
@@ -169,23 +216,27 @@ def add_reading(request):
         status=201,
     )
 
-@csrf_exempt
-def save_image(request):
-    if request.method != "POST":
-        return JsonResponse({"error": "Only POST allowed"}, status=405)
+@api_view(["GET", "POST"])
+def camera_events(request):
+    if request.method == "GET":
+        images = Image.objects.order_by("-created_at")
+        serializer = ImageSerializer(images, many=True)
 
-    try:
-        data = json.loads(request.body)
-    except json.JSONDecodeError:
-        return JsonResponse({"error": "Invalid JSON"}, status=400)
+        data = serializer.data
+        for item in data:
+            item["access_url"] = _build_signed_blob_url(item["url"])
 
-    url = data.get("url")
+        return Response(data, status=200)
 
-    if not url:
-        return JsonResponse({"error": "URL is required"}, status=400)
+    serializer = ImageSerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=400)
 
-    from .models import Image  # import ici pour éviter conflits
-
-    Image.objects.create(url=url)
-
-    return JsonResponse({"message": "Image saved"}, status=201)
+    serializer.save()
+    return Response(
+        {
+            "message": "Camera event saved",
+            "event": serializer.data,
+        },
+        status=201,
+    )
