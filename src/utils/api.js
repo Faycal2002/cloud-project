@@ -15,6 +15,7 @@ export const api = {
         const response = await fetch(`${API_URL}/login/`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
             body: JSON.stringify({ email, password }),
         });
         return parseJson(response);
@@ -24,6 +25,7 @@ export const api = {
         const response = await fetch(`${API_URL}/register/`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
             body: JSON.stringify({
                 firstName,
                 lastName,
@@ -39,22 +41,29 @@ export const api = {
         const response = await fetch(`${API_URL}/logout/`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
         });
         return parseJson(response);
     },
 
     getLatestReading: async () => {
-        const response = await fetch(`${API_URL}/latest/`);
+        const response = await fetch(`${API_URL}/latest/`, {
+            credentials: 'include',
+        });
         return parseJson(response);
     },
 
     getReadingsHistory: async () => {
-        const response = await fetch(`${API_URL}/history/`);
+        const response = await fetch(`${API_URL}/history/`, {
+            credentials: 'include',
+        });
         return parseJson(response);
     },
 
     getCameraEvents: async () => {
-        const response = await fetch(`${API_URL}/images/`);
+        const response = await fetch(`${API_URL}/images/`, {
+            credentials: 'include',
+        });
         return parseJson(response);
     },
 
@@ -62,6 +71,7 @@ export const api = {
         const response = await fetch(`${API_URL}/images/`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
             body: JSON.stringify({
                 url,
                 device_id: deviceId,

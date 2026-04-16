@@ -6,25 +6,62 @@ import { formatFullDateTime } from "../utils/date";
 function Dashboard() {
   const [latest, setLatest] = useState(null);
   const [history, setHistory] = useState([]);
-  const [cameraHistory, setCameraHistory] = useState([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [notifications, setNotifications] = useState([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [lastAlert, setLastAlert] = useState("");
 
   useEffect(() => {
     let isMounted = true;
 
     const fetchLiveData = async () => {
       try {
-        const [latestData, historyData, cameraData] = await Promise.all([
+        const [latestData, historyData] = await Promise.all([
           api.getLatestReading(),
           api.getReadingsHistory(),
-          api.getCameraEvents(),
         ]);
 
         if (!isMounted) return;
         setLatest(latestData?.message ? null : latestData);
+
+        // Azure alert check
+        if (latestData && latestData.temperature) {
+          try {
+            const response = await fetch(
+              "https://temperature-alert-app-bzf3epb5cnfze6h6.ukwest-01.azurewebsites.net/api/CheckTemperature",
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  temperature: latestData.temperature,
+                }),
+              }
+            );
+
+            const alertData = await response.json();
+            console.log("Azure response:", alertData);
+
+            //  Prevent duplicate alerts
+            if (alertData.alert && alertData.message !== lastAlert) {
+              setNotifications((prev) => [
+                {
+                  message: alertData.message,
+                  time: new Date().toLocaleTimeString(),
+                },
+                ...prev.slice(0, 9), // keep last 10
+              ]);
+              setLastAlert(alertData.message);
+            }
+
+          } catch (err) {
+            console.error("Azure Function error:", err);
+          }
+        }
+
         setHistory(Array.isArray(historyData) ? historyData : []);
-        setCameraHistory(Array.isArray(cameraData) ? cameraData : []);
         setError("");
       } catch (err) {
         if (!isMounted) return;
@@ -41,32 +78,27 @@ function Dashboard() {
       isMounted = false;
       clearInterval(intervalId);
     };
-  }, []);
+  }, [lastAlert]);
 
   const activeDevices = useMemo(() => {
-    const sensorDeviceIds = history.map((item) => item.device_id || "unknown-device");
-    const cameraDeviceIds = cameraHistory.map((item) => item.device_id || "camera-1");
-    return new Set([...sensorDeviceIds, ...cameraDeviceIds]).size;
-  }, [history, cameraHistory]);
+    return new Set(history.map((item) => item.device_id || "unknown-device")).size;
+  }, [history]);
 
   const latestTime = formatFullDateTime(latest?.created_at);
-  const latestCameraEvent = cameraHistory[0] || null;
-  const latestCameraTime = formatFullDateTime(latestCameraEvent?.created_at);
 
-  const readingAgeMs = latest?.created_at ? Date.now() - new Date(latest.created_at).getTime() : null;
-  const isFreshReading = readingAgeMs !== null && readingAgeMs >= 0 && readingAgeMs <= 120000;
-  const noIncomingSensorData = !isFreshReading;
+  const readingAgeMs = latest?.created_at
+    ? Date.now() - new Date(latest.created_at).getTime()
+    : null;
 
-  const cameraAgeMs = latestCameraEvent?.created_at ? Date.now() - new Date(latestCameraEvent.created_at).getTime() : null;
-  const isFreshCameraEvent = cameraAgeMs !== null && cameraAgeMs >= 0 && cameraAgeMs <= 300000;
+  const isFreshReading =
+    readingAgeMs !== null && readingAgeMs >= 0 && readingAgeMs <= 120000;
 
-  const liveReadingLabel = latest && isFreshReading
-    ? `LIVE READING: ${Number(latest.temperature).toFixed(1)}°C / ${Number(latest.humidity).toFixed(1)}%`
-    : "NO LIVE READING RECEIVED YET";
-
-  const currentStatusLabel = noIncomingSensorData
-    ? "NO RECEIVING DATA FROM IOT HUB"
-    : (latest?.alert_message || "OK");
+  const liveReadingLabel =
+    latest && isFreshReading
+      ? `LIVE READING: ${Number(latest.temperature).toFixed(1)}°C / ${Number(
+        latest.humidity
+      ).toFixed(1)}%`
+      : "NO LIVE READING RECEIVED YET";
 
   const statusColor = (message = "") => {
     if (message.startsWith("CRITICAL")) return "text-red-600";
@@ -78,23 +110,68 @@ function Dashboard() {
     if (value === null || value === undefined || Number.isNaN(Number(value))) {
       return "No data";
     }
-
     return `${Number(value).toFixed(1)}${suffix}`;
   };
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen relative">
+
+      <div className="absolute top-5 right-5">
+        <button
+          onClick={() => setShowNotifications(!showNotifications)}
+          className="relative text-2xl"
+        >
+          🔔
+
+          {notifications.length > 0 && (
+            <span className="absolute -top-2 -right-2 bg-red-600 text-white text-xs px-2 py-0.5 rounded-full">
+              {notifications.length}
+            </span>
+          )}
+        </button>
+
+        {/* // Dropdown  */}
+        {showNotifications && (
+          <div className="mt-2 w-72 bg-white shadow-lg rounded-lg p-3 border z-50">
+            <h3 className="font-semibold mb-2">Notifications</h3>
+
+            {notifications.length === 0 ? (
+              <p className="text-gray-500 text-sm">No alerts</p>
+            ) : (
+              <ul className="space-y-2 max-h-60 overflow-y-auto">
+                {notifications.map((n, index) => (
+                  <li key={index} className="text-sm border-b pb-1">
+                    <span className="block text-red-600 font-medium">
+                      {n.message}
+                    </span>
+                    <span className="text-gray-400 text-xs">{n.time}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            <button
+              onClick={() => setNotifications([])}
+              className="mt-2 text-xs text-blue-500"
+            >
+              Clear all
+            </button>
+          </div>
+        )}
+      </div>
+
       <SideMenu />
 
       <div className="flex flex-col flex-1">
         <main className="flex-1 px-6 md:px-12 pt-12">
 
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-800 mb-2">Dashboard Overview</h1>
-            <p className="text-sm text-gray-500 mt-1">Last update: {latestTime}</p>
-            {noIncomingSensorData && (
-              <p className="text-sm text-red-600 mt-2 font-medium">NO RECEIVING DATA FROM IOT HUB</p>
-            )}
+            <h1 className="text-3xl font-bold text-gray-800 mb-2">
+              Dashboard Overview
+            </h1>
+            <p className="text-sm text-gray-500 mt-1">
+              Last update: {latestTime}
+            </p>
           </div>
 
           {error && (
@@ -125,12 +202,12 @@ function Dashboard() {
 
             <div className="bg-white p-6 rounded-xl shadow">
               <p className="text-gray-500">Current Status</p>
-              <h2 className={`text-lg font-bold mt-2 ${noIncomingSensorData ? 'text-red-600' : statusColor(latest?.alert_message)}`}>
-                {currentStatusLabel}
+              <h2 className={`text-lg font-bold mt-2 ${statusColor(latest?.alert_message)}`}>
+                {latest?.alert_message || "No data yet"}
               </h2>
             </div>
 
-            <div className="bg-white p-6 rounded-xl shadow">
+            <div className={`bg-white p-6 rounded-xl shadow border ${latest ? 'border-green-200' : 'border-red-300'}`}>
               <p className="text-gray-500">Live Reading</p>
               <h2 className={`text-lg font-bold mt-2 ${isFreshReading ? 'text-green-600' : 'text-red-600'}`}>
                 {liveReadingLabel}
@@ -138,24 +215,6 @@ function Dashboard() {
               <p className={`text-sm mt-1 ${isFreshReading ? 'text-green-500' : 'text-red-500'}`}>
                 {isFreshReading ? 'Sensor stream active' : 'No recent sensor stream'}
               </p>
-            </div>
-
-            <div className="bg-white p-6 rounded-xl shadow">
-              <p className="text-gray-500">Last Camera Picture</p>
-              <h2 className="text-lg font-bold mt-2 text-gray-900">{latestCameraTime}</h2>
-              <p className={`text-sm mt-1 ${isFreshCameraEvent ? 'text-gray-600' : 'text-red-500'}`}>
-                {latestCameraEvent ? (isFreshCameraEvent ? 'Motion event saved' : 'No recent camera data') : 'No camera image yet'}
-              </p>
-              {latestCameraEvent && (
-                <a
-                  href={latestCameraEvent.access_url || latestCameraEvent.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-block mt-2 text-sm text-blue-600 hover:text-blue-700"
-                >
-                  Open latest photo
-                </a>
-              )}
             </div>
           </div>
 
@@ -206,3 +265,4 @@ function Dashboard() {
   );
 }
 export default Dashboard;
+

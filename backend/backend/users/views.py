@@ -4,7 +4,7 @@ from urllib.parse import urlparse
 
 from django.contrib.auth import authenticate, login, logout
 from django.conf import settings
-from django.contrib.auth.models import User
+from django.contrib.auth.models import Group, User
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.decorators import api_view
@@ -58,6 +58,29 @@ def _build_signed_blob_url(blob_url):
     return f"{parsed.scheme}://{parsed.netloc}{parsed.path}?{sas_token}"
 
 
+def _ensure_group(group_name):
+    group, _ = Group.objects.get_or_create(name=group_name)
+    return group
+
+
+def _get_user_role(user):
+    if user.is_staff or user.is_superuser or user.groups.filter(name="admin").exists():
+        return "admin"
+    return "user"
+
+
+def _serialize_user(user):
+    role = _get_user_role(user)
+    return {
+        "firstName": user.first_name,
+        "lastName": user.last_name,
+        "email": user.email,
+        "username": user.username,
+        "role": role,
+        "isAdmin": role == "admin",
+    }
+
+
 @csrf_exempt
 def register_user(request):
     """Register a new user account."""
@@ -92,16 +115,12 @@ def register_user(request):
             first_name=first_name,
             last_name=last_name,
         )
+        user.groups.add(_ensure_group("user"))
         login(request, user)
         return JsonResponse(
             {
                 "message": "User registered successfully",
-                "user": {
-                    "firstName": user.first_name,
-                    "lastName": user.last_name,
-                    "email": user.email,
-                    "username": user.username,
-                },
+                "user": _serialize_user(user),
             },
             status=201,
         )
@@ -136,12 +155,7 @@ def login_user(request):
     return JsonResponse(
         {
             "message": "Login successful",
-            "user": {
-                "firstName": user.first_name,
-                "lastName": user.last_name,
-                "email": user.email,
-                "username": user.username,
-            },
+            "user": _serialize_user(user),
         },
         status=200,
     )
@@ -160,6 +174,9 @@ def logout_user(request):
 @api_view(["GET"])
 def latest_reading(request):
     """Return the most recent sensor reading."""
+    if not request.user.is_authenticated:
+        return Response({"error": "Authentication required"}, status=401)
+
     reading = SensorReading.objects.order_by("-created_at").first()
 
     if not reading:
@@ -172,6 +189,9 @@ def latest_reading(request):
 @api_view(["GET"])
 def readings_history(request):
     """Return sensor readings ordered by newest first."""
+    if not request.user.is_authenticated:
+        return Response({"error": "Authentication required"}, status=401)
+
     readings = SensorReading.objects.order_by("-created_at")
     serializer = SensorReadingSerializer(readings, many=True)
     return Response(serializer.data, status=200)
@@ -219,6 +239,12 @@ def add_reading(request):
 @api_view(["GET", "POST"])
 def camera_events(request):
     if request.method == "GET":
+        if not request.user.is_authenticated:
+            return Response({"error": "Authentication required"}, status=401)
+
+        if _get_user_role(request.user) != "admin":
+            return Response({"error": "Admin access required"}, status=403)
+
         images = Image.objects.order_by("-created_at")
         serializer = ImageSerializer(images, many=True)
 
