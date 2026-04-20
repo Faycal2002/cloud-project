@@ -60,6 +60,51 @@ export const api = {
         return parseJson(response);
     },
 
+    listReadingsCrud: async () => {
+        const response = await fetch(`${API_URL}/readings/`, {
+            credentials: 'include',
+        });
+        return parseJson(response);
+    },
+
+    createReadingCrud: async (payload) => {
+        const response = await fetch(`${API_URL}/readings/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify(payload),
+        });
+        return parseJson(response);
+    },
+
+    getReadingCrud: async (readingId) => {
+        const response = await fetch(`${API_URL}/readings/${readingId}/`, {
+            credentials: 'include',
+        });
+        return parseJson(response);
+    },
+
+    updateReadingCrud: async (readingId, payload) => {
+        const response = await fetch(`${API_URL}/readings/${readingId}/`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify(payload),
+        });
+        return parseJson(response);
+    },
+
+    deleteReadingCrud: async (readingId) => {
+        const response = await fetch(`${API_URL}/readings/${readingId}/`, {
+            method: 'DELETE',
+            credentials: 'include',
+        });
+        if (!response.ok) {
+            return parseJson(response);
+        }
+        return { success: true };
+    },
+
     getCameraEvents: async () => {
         const response = await fetch(`${API_URL}/images/`, {
             credentials: 'include',
@@ -79,5 +124,50 @@ export const api = {
             }),
         });
         return parseJson(response);
+    },
+
+    listImagesCrud: async () => {
+        const response = await fetch(`${API_URL}/images/crud/`, {
+            credentials: 'include',
+        });
+        return parseJson(response);
+    },
+
+    createImageCrud: async (payload) => {
+        const response = await fetch(`${API_URL}/images/crud/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify(payload),
+        });
+        return parseJson(response);
+    },
+
+    getImageCrud: async (imageId) => {
+        const response = await fetch(`${API_URL}/images/crud/${imageId}/`, {
+            credentials: 'include',
+        });
+        return parseJson(response);
+    },
+
+    updateImageCrud: async (imageId, payload) => {
+        const response = await fetch(`${API_URL}/images/crud/${imageId}/`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify(payload),
+        });
+        return parseJson(response);
+    },
+
+    deleteImageCrud: async (imageId) => {
+        const response = await fetch(`${API_URL}/images/crud/${imageId}/`, {
+            method: 'DELETE',
+            credentials: 'include',
+        });
+        if (!response.ok) {
+            return parseJson(response);
+        }
+        return { success: true };
     },
 };

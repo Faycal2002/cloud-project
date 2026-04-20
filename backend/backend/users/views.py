@@ -7,6 +7,7 @@ from django.conf import settings
 from django.contrib.auth.models import Group, User
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+from django.shortcuts import get_object_or_404
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from azure.storage.blob import BlobSasPermissions, generate_blob_sas
@@ -79,6 +80,23 @@ def _serialize_user(user):
         "role": role,
         "isAdmin": role == "admin",
     }
+
+
+def _evaluate_alert(temperature, humidity):
+    is_alert = False
+    alert_message = "OK: Temperature and humidity are within normal range"
+
+    if temperature > 30 and humidity > 70:
+        is_alert = True
+        alert_message = "CRITICAL: High temperature and high humidity detected"
+    elif temperature > 30:
+        is_alert = True
+        alert_message = "WARNING: High temperature detected"
+    elif humidity > 70:
+        is_alert = True
+        alert_message = "WARNING: High humidity detected"
+
+    return is_alert, alert_message
 
 
 @csrf_exempt
@@ -209,18 +227,7 @@ def add_reading(request):
     temperature = data.get("temperature")
     humidity = data.get("humidity")
 
-    is_alert = False
-    alert_message = "OK: Temperature and humidity are within normal range"
-
-    if temperature > 30 and humidity > 70:
-        is_alert = True
-        alert_message = "CRITICAL: High temperature and high humidity detected"
-    elif temperature > 30:
-        is_alert = True
-        alert_message = "WARNING: High temperature detected"
-    elif humidity > 70:
-        is_alert = True
-        alert_message = "WARNING: High humidity detected"
+    is_alert, alert_message = _evaluate_alert(temperature, humidity)
 
     serializer.save(
         is_alert=is_alert,
@@ -235,6 +242,114 @@ def add_reading(request):
         },
         status=201,
     )
+
+
+@api_view(["GET", "POST"])
+def readings_crud(request):
+    if not request.user.is_authenticated:
+        return Response({"error": "Authentication required"}, status=401)
+
+    if request.method == "GET":
+        readings = SensorReading.objects.order_by("-created_at")
+        serializer = SensorReadingSerializer(readings, many=True)
+        return Response(serializer.data, status=200)
+
+    serializer = SensorReadingSerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=400)
+
+    data = serializer.validated_data
+    temperature = data.get("temperature")
+    humidity = data.get("humidity")
+    is_alert, alert_message = _evaluate_alert(temperature, humidity)
+
+    serializer.save(is_alert=is_alert, alert_message=alert_message)
+    return Response(serializer.data, status=201)
+
+
+@api_view(["GET", "PUT", "PATCH", "DELETE"])
+def reading_detail_crud(request, reading_id):
+    if not request.user.is_authenticated:
+        return Response({"error": "Authentication required"}, status=401)
+
+    reading = get_object_or_404(SensorReading, pk=reading_id)
+
+    if request.method == "GET":
+        serializer = SensorReadingSerializer(reading)
+        return Response(serializer.data, status=200)
+
+    if _get_user_role(request.user) != "admin":
+        return Response({"error": "Admin access required"}, status=403)
+
+    if request.method in ["PUT", "PATCH"]:
+        partial = request.method == "PATCH"
+        serializer = SensorReadingSerializer(reading, data=request.data, partial=partial)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+
+        data = serializer.validated_data
+        temperature = data.get("temperature", reading.temperature)
+        humidity = data.get("humidity", reading.humidity)
+        is_alert, alert_message = _evaluate_alert(temperature, humidity)
+
+        serializer.save(is_alert=is_alert, alert_message=alert_message)
+        return Response(serializer.data, status=200)
+
+    reading.delete()
+    return Response(status=204)
+
+
+@api_view(["GET", "POST"])
+def images_crud(request):
+    if not request.user.is_authenticated:
+        return Response({"error": "Authentication required"}, status=401)
+
+    if _get_user_role(request.user) != "admin":
+        return Response({"error": "Admin access required"}, status=403)
+
+    if request.method == "GET":
+        images = Image.objects.order_by("-created_at")
+        serializer = ImageSerializer(images, many=True)
+        data = serializer.data
+        for item in data:
+            item["access_url"] = _build_signed_blob_url(item["url"])
+        return Response(data, status=200)
+
+    serializer = ImageSerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=400)
+
+    serializer.save()
+    return Response(serializer.data, status=201)
+
+
+@api_view(["GET", "PUT", "PATCH", "DELETE"])
+def image_detail_crud(request, image_id):
+    if not request.user.is_authenticated:
+        return Response({"error": "Authentication required"}, status=401)
+
+    if _get_user_role(request.user) != "admin":
+        return Response({"error": "Admin access required"}, status=403)
+
+    image = get_object_or_404(Image, pk=image_id)
+
+    if request.method == "GET":
+        serializer = ImageSerializer(image)
+        data = serializer.data
+        data["access_url"] = _build_signed_blob_url(data["url"])
+        return Response(data, status=200)
+
+    if request.method in ["PUT", "PATCH"]:
+        partial = request.method == "PATCH"
+        serializer = ImageSerializer(image, data=request.data, partial=partial)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+
+        serializer.save()
+        return Response(serializer.data, status=200)
+
+    image.delete()
+    return Response(status=204)
 
 @api_view(["GET", "POST"])
 def camera_events(request):
