@@ -19,7 +19,7 @@ function Dashboard() {
       try {
         const [latestData, historyData] = await Promise.all([
           api.getLatestReading(),
-          
+
           api.getReadingsHistory(),
         ]);
 
