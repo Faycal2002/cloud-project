@@ -237,7 +237,7 @@ function Dashboard() {
                       <th className="py-2 pr-4">Temperature</th>
                       <th className="py-2 pr-4">Humidity</th>
                       <th className="py-2 pr-4">Status</th>
-                      <th className="py-2">Date et heure</th>
+                      <th className="py-2">Date and time</th>
                     </tr>
                   </thead>
                   <tbody>

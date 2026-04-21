@@ -1,6 +1,6 @@
-// Fichier pour les appels API
+// API request helpers
 
-const API_URL = 'https://5042982-backend2-hhbvdyftf2habucx.uksouth-01.azurewebsites.net/api';
+const API_URL = 'http://localhost:8000/api';
 const parseJson = async (response) => {
     const data = await response.json();
     if (!response.ok) {

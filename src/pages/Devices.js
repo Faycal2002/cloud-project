@@ -188,7 +188,7 @@ function Devices() {
                   )}
                   <th className="px-2 py-4 text-left">Status</th>
                   <th className="px-2 py-4 text-left">Details</th>
-                  <th className="px-2 py-4 text-left">Date et heure</th>
+                  <th className="px-2 py-4 text-left">Date and time</th>
                 </tr>
               </thead>
               <tbody className="text-gray-700">
