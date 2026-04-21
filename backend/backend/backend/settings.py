@@ -163,11 +163,16 @@ CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
-    "https://5042982-frontend2-g6dcfjgtf2dtd3hx.uksouth-01.azurewebsites.net",
+    "https://fayfront-c5bhreget4dwgncuksouth-01.azurewebsites.net",
 ]
 
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
-    "https://5042982-frontend2-g6dcfjgtf2dtd3hx.uksouth-01.azurewebsites.net",
+    "https://fayfront-c5bhreget4dwgncuksouth-01.azurewebsites.net",
 ]
+SESSION_COOKIE_SAMESITE = "None"
+SESSION_COOKIE_SECURE = True
+
+CSRF_COOKIE_SAMESITE = "None"
+CSRF_COOKIE_SECURE = True
