@@ -1,5 +1,5 @@
 // ==============================
-// CONFIG
+// CONFIG (🔥 BACKEND CORRECT)
 // ==============================
 
 const API_URL = "https://fayback-e9h3f0c0fbfhgkar.uksouth-01.azurewebsites.net/api";
@@ -24,7 +24,7 @@ async function request(url, options = {}) {
         credentials: "include",
         headers: {
             "Content-Type": "application/json",
-            "X-CSRFToken": getCSRFToken(), // 🔥 CRITICAL
+            "X-CSRFToken": getCSRFToken(),
         },
     };
 
@@ -78,14 +78,10 @@ export const api = {
 
     // 📊 DATA
     getLatestReading: () =>
-        request(`${API_URL}/latest/`, {
-            method: "GET",
-        }),
+        request(`${API_URL}/latest/`, { method: "GET" }),
 
     getReadingsHistory: () =>
-        request(`${API_URL}/history/`, {
-            method: "GET",
-        }),
+        request(`${API_URL}/history/`, { method: "GET" }),
 
     // CRUD READINGS
     listReadings: () =>
@@ -133,5 +129,11 @@ export const api = {
     deleteImage: (id) =>
         request(`${API_URL}/images/${id}/`, {
             method: "DELETE",
+        }),
+
+    // 🔥 AJOUT IMPORTANT (corrige ton erreur)
+    getCameraEvents: () =>
+        request(`${API_URL}/images/`, {
+            method: "GET",
         }),
 };
