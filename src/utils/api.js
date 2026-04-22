@@ -1,32 +1,69 @@
-// API request helpers
+// ==============================
+// CONFIG
+// ==============================
 
 const API_URL =
     process.env.REACT_APP_API_URL ||
     "https://fayback-e9h3f0c0fbfhgkar.uksouth-01.azurewebsites.net/api";
-const parseJson = async (response) => {
-    const data = await response.json();
+
+// ==============================
+// CSRF TOKEN HELPER
+// ==============================
+
+function getCSRFToken() {
+    return document.cookie
+        .split("; ")
+        .find((row) => row.startsWith("csrftoken="))
+        ?.split("=")[1];
+}
+
+// ==============================
+// FETCH WRAPPER
+// ==============================
+
+async function request(url, options = {}) {
+    const defaultOptions = {
+        credentials: "include",
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": getCSRFToken(), // 🔥 CRITICAL
+        },
+    };
+
+    const response = await fetch(url, {
+        ...defaultOptions,
+        ...options,
+        headers: {
+            ...defaultOptions.headers,
+            ...(options.headers || {}),
+        },
+    });
+
+    const data = await response.json().catch(() => ({}));
+
     if (!response.ok) {
-        throw new Error(data?.error || data?.detail || 'API request failed');
+        throw new Error(data?.error || data?.detail || "API request failed");
     }
+
     return data;
-};
+}
+
+// ==============================
+// API METHODS
+// ==============================
 
 export const api = {
-    login: async (email, password) => {
-        const response = await fetch(`${API_URL}/login/`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
-            body: JSON.stringify({ email, password }),
-        });
-        return parseJson(response);
-    },
 
-    register: async (firstName, lastName, email, password) => {
-        const response = await fetch(`${API_URL}/register/`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
+    // 🔐 AUTH
+    login: (email, password) =>
+        request(`${API_URL}/login/`, {
+            method: "POST",
+            body: JSON.stringify({ email, password }),
+        }),
+
+    register: (firstName, lastName, email, password) =>
+        request(`${API_URL}/register/`, {
+            method: "POST",
             body: JSON.stringify({
                 firstName,
                 lastName,
@@ -34,141 +71,69 @@ export const api = {
                 password,
                 confirmPassword: password,
             }),
-        });
-        return parseJson(response);
-    },
+        }),
 
-    logout: async () => {
-        const response = await fetch(`${API_URL}/logout/`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
-        });
-        return parseJson(response);
-    },
+    logout: () =>
+        request(`${API_URL}/logout/`, {
+            method: "POST",
+        }),
 
-    getLatestReading: async () => {
-        const response = await fetch(`${API_URL}/latest/`, {
-            credentials: 'include',
-        });
-        return parseJson(response);
-    },
+    // 📊 DATA
+    getLatestReading: () =>
+        request(`${API_URL}/latest/`, {
+            method: "GET",
+        }),
 
-    getReadingsHistory: async () => {
-        const response = await fetch(`${API_URL}/history/`, {
-            credentials: 'include',
-        });
-        return parseJson(response);
-    },
+    getReadingsHistory: () =>
+        request(`${API_URL}/history/`, {
+            method: "GET",
+        }),
 
-    listReadingsCrud: async () => {
-        const response = await fetch(`${API_URL}/readings/`, {
-            credentials: 'include',
-        });
-        return parseJson(response);
-    },
+    // CRUD READINGS
+    listReadings: () =>
+        request(`${API_URL}/readings/`),
 
-    createReadingCrud: async (payload) => {
-        const response = await fetch(`${API_URL}/readings/`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
+    createReading: (payload) =>
+        request(`${API_URL}/readings/`, {
+            method: "POST",
             body: JSON.stringify(payload),
-        });
-        return parseJson(response);
-    },
+        }),
 
-    getReadingCrud: async (readingId) => {
-        const response = await fetch(`${API_URL}/readings/${readingId}/`, {
-            credentials: 'include',
-        });
-        return parseJson(response);
-    },
+    getReading: (id) =>
+        request(`${API_URL}/readings/${id}/`),
 
-    updateReadingCrud: async (readingId, payload) => {
-        const response = await fetch(`${API_URL}/readings/${readingId}/`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
+    updateReading: (id, payload) =>
+        request(`${API_URL}/readings/${id}/`, {
+            method: "PUT",
             body: JSON.stringify(payload),
-        });
-        return parseJson(response);
-    },
+        }),
 
-    deleteReadingCrud: async (readingId) => {
-        const response = await fetch(`${API_URL}/readings/${readingId}/`, {
-            method: 'DELETE',
-            credentials: 'include',
-        });
-        if (!response.ok) {
-            return parseJson(response);
-        }
-        return { success: true };
-    },
+    deleteReading: (id) =>
+        request(`${API_URL}/readings/${id}/`, {
+            method: "DELETE",
+        }),
 
-    getCameraEvents: async () => {
-        const response = await fetch(`${API_URL}/images/`, {
-            credentials: 'include',
-        });
-        return parseJson(response);
-    },
+    // 📷 IMAGES
+    getImages: () =>
+        request(`${API_URL}/images/`),
 
-    saveCameraEvent: async (url, deviceId = 'camera-1', motionDetected = true) => {
-        const response = await fetch(`${API_URL}/images/`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
-            body: JSON.stringify({
-                url,
-                device_id: deviceId,
-                motion_detected: motionDetected,
-            }),
-        });
-        return parseJson(response);
-    },
-
-    listImagesCrud: async () => {
-        const response = await fetch(`${API_URL}/images/crud/`, {
-            credentials: 'include',
-        });
-        return parseJson(response);
-    },
-
-    createImageCrud: async (payload) => {
-        const response = await fetch(`${API_URL}/images/crud/`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
+    createImage: (payload) =>
+        request(`${API_URL}/images/`, {
+            method: "POST",
             body: JSON.stringify(payload),
-        });
-        return parseJson(response);
-    },
+        }),
 
-    getImageCrud: async (imageId) => {
-        const response = await fetch(`${API_URL}/images/crud/${imageId}/`, {
-            credentials: 'include',
-        });
-        return parseJson(response);
-    },
+    getImage: (id) =>
+        request(`${API_URL}/images/${id}/`),
 
-    updateImageCrud: async (imageId, payload) => {
-        const response = await fetch(`${API_URL}/images/crud/${imageId}/`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
+    updateImage: (id, payload) =>
+        request(`${API_URL}/images/${id}/`, {
+            method: "PUT",
             body: JSON.stringify(payload),
-        });
-        return parseJson(response);
-    },
+        }),
 
-    deleteImageCrud: async (imageId) => {
-        const response = await fetch(`${API_URL}/images/crud/${imageId}/`, {
-            method: 'DELETE',
-            credentials: 'include',
-        });
-        if (!response.ok) {
-            return parseJson(response);
-        }
-        return { success: true };
-    },
+    deleteImage: (id) =>
+        request(`${API_URL}/images/${id}/`, {
+            method: "DELETE",
+        }),
 };
