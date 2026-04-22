@@ -2,9 +2,7 @@
 // CONFIG
 // ==============================
 
-const API_URL =
-    process.env.REACT_APP_API_URL ||
-    "https://fayback-e9h3f0c0fbfhgkar.uksouth-01.azurewebsites.net/api";
+const API_URL = "https://fayback-e9h3f0c0fbfhgkar.uksouth-01.azurewebsites.net/api";
 
 // ==============================
 // CSRF TOKEN HELPER

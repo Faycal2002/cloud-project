@@ -12,6 +12,7 @@ if not SECRET_KEY:
     raise Exception("SECRET_KEY missing")
 
 DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
+
 ALLOWED_HOSTS = ["*"]
 
 # ========================
@@ -30,10 +31,14 @@ INSTALLED_APPS = [
     "users",
 ]
 
+# ========================
+# MIDDLEWARE (⚠️ ordre CRITIQUE)
+# ========================
+
 MIDDLEWARE = [
-    "corsheaders.middleware.CorsMiddleware",  # 🔥 IMPORTANT EN PREMIER
-    "whitenoise.middleware.WhiteNoiseMiddleware",
+    "corsheaders.middleware.CorsMiddleware",  # 🔥 DOIT ÊTRE EN PREMIER
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -99,7 +104,7 @@ else:
     }
 
 # ========================
-# AZURE / SERVICES
+# AZURE SERVICES
 # ========================
 
 EVENT_HUB_CONNECTION_STRING = os.environ.get("EVENT_HUB_CONNECTION_STRING", "")
@@ -149,10 +154,14 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # ========================
-# CORS / CSRF (🔥 VERSION QUI MARCHE)
+# 🔥🔥🔥 CORS / CSRF FIX FINAL 🔥🔥🔥
 # ========================
 
-CORS_ALLOW_ALL_ORIGINS = True  # 🔥 debug (autorise tout)
+CORS_ALLOW_ALL_ORIGINS = False  # ⚠️ obligatoire avec credentials
+
+CORS_ALLOWED_ORIGINS = [
+    "https://fayfront-c5h8eqete4dxgtcx.uksouth-01.azurewebsites.net",
+]
 
 CORS_ALLOW_CREDENTIALS = True
 
@@ -178,9 +187,7 @@ CORS_ALLOW_METHODS = [
 ]
 
 CSRF_TRUSTED_ORIGINS = [
-    "https://fayfront-c5bhreget4dwgncuksouth-01.azurewebsites.net",
-    "https://fayfront-c5bhreget4dwgnc.uksouth-01.azurewebsites.net",
-    "https://5042982-frontend2-g6dcfjgtf2dtd3hx.uksouth-01.azurewebsites.net",
+    "https://fayfront-c5h8eqete4dxgtcx.uksouth-01.azurewebsites.net",
 ]
 
 SESSION_COOKIE_SAMESITE = "None"
