@@ -3,6 +3,7 @@ build/
 .env
 .DS_Store
 .venv/
+virtMicro
 
 # Python
 __pycache__/
