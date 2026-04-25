@@ -10,16 +10,16 @@ import Energy from "./pages/Energy"
 function App() {
     return (
         <Router>
-            <Navbar/>
+            <Navbar />
             <Routes>
                 <Route path="/" element={<Login />} />
-                <Route path='/login' element={<Login/>}/>
+                <Route path='/login' element={<Login />} />
                 <Route path="/register" element={<Register />} />
                 <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/devices" element={<Devices/>} />
-                <Route path ="/energy" element={<Energy/>} />
+                <Route path="/devices" element={<Devices />} />
+                <Route path="/energy" element={<Energy />} />
             </Routes>
-            <Footer/>
+            <Footer />
         </Router>
     );
 }
