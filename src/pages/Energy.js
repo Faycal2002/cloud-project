@@ -2,30 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import SideMenu from "../components/SideMenu";
 import { api } from "../utils/api";
 
-const SAMPLE_HISTORY = [
-  {
-    temperature: 28,
-    humidity: 54,
-    device_id: "sample-device-1",
-    alert_message: "OK",
-    created_at: "2026-04-26T00:00:00Z",
-  },
-  {
-    temperature: 31,
-    humidity: 58,
-    device_id: "sample-device-1",
-    alert_message: "WARNING: High temperature detected",
-    created_at: "2026-04-26T00:05:00Z",
-  },
-  {
-    temperature: 34,
-    humidity: 66,
-    device_id: "sample-device-1",
-    alert_message: "CRITICAL: High temperature and high humidity detected",
-    created_at: "2026-04-26T00:10:00Z",
-  },
-];
-
 function Energy() {
   const [history, setHistory] = useState([]);
   const [error, setError] = useState("");
@@ -41,8 +17,8 @@ function Energy() {
         setError("");
       } catch (err) {
         if (!mounted) return;
-        setHistory(SAMPLE_HISTORY);
-        setError("Fallback mode: backend not reachable, showing sample data.");
+        setHistory([]);
+        setError("No live data available right now.");
       }
     };
 
@@ -162,7 +138,7 @@ function Energy() {
     let label = "Low risk";
     let recommendation = "Temperature and humidity are within a stable range.";
 
-    if (avgTemp > 30 && avgHumidity > 60) {
+    if (avgTemp > 30 && avgHumidity > 70) {
       label = "High risk";
       recommendation = "Temperature and humidity are both high, so the risk increases a lot.";
     } else if (avgTemp > 30) {
@@ -348,7 +324,7 @@ function Energy() {
                 <p className="text-sm text-gray-500">Simple risk logic based on temperature and humidity thresholds</p>
               </div>
               <span className="rounded-full bg-indigo-100 px-3 py-1 text-xs font-semibold text-indigo-700">
-                Fallback data
+                Live logic
               </span>
             </div>
 
