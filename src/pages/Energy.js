@@ -127,24 +127,32 @@ function Energy() {
       };
     }
 
-    const avgTemp = stats.avgTemp;
-    const avgHumidity = stats.avgHumidity;
-    const tempRisk = avgTemp <= 30 ? 10 : Math.min(60, 10 + Math.round((avgTemp - 30) * 3));
-    const humidityRisk = avgHumidity <= 70 ? 5 : Math.min(60, 5 + Math.round((avgHumidity - 70) * 3));
-    const combinedRisk = avgTemp > 30 && avgHumidity > 70 ? 45 : 0;
-    const alertPressure = Math.min(20, Math.round((stats.criticalCount / history.length) * 20));
+    const currentTemp = Number(latestReading?.temperature ?? stats.avgTemp ?? 0);
+    const currentHumidity = Number(latestReading?.humidity ?? stats.avgHumidity ?? 0);
+
+    const tempOver = Math.max(0, currentTemp - 30);
+    const humidityOver = Math.max(0, currentHumidity - 70);
+
+    const tempRisk = Math.min(50, Math.round(tempOver * 6));
+    const humidityRisk = Math.min(50, Math.round(humidityOver * 3));
+    const combinedRisk = tempOver > 0 && humidityOver > 0
+      ? Math.min(40, 15 + Math.round((tempOver * humidityOver) / 2))
+      : 0;
+
+    const latestMessage = latestReading?.alert_message || "";
+    const alertPressure = latestMessage.startsWith("CRITICAL") ? 20 : latestMessage.startsWith("WARNING") ? 10 : 0;
     const score = Math.min(100, tempRisk + humidityRisk + combinedRisk + alertPressure);
 
     let label = "Low risk";
     let recommendation = "Temperature and humidity are within a stable range.";
 
-    if (avgTemp > 30 && avgHumidity > 70) {
+    if (currentTemp > 30 && currentHumidity > 70) {
       label = "High risk";
       recommendation = "Temperature and humidity are both high, so the risk increases a lot.";
-    } else if (avgTemp > 30) {
+    } else if (currentTemp > 30) {
       label = "Moderate risk";
       recommendation = "Temperature is rising, so the risk increases more and more.";
-    } else if (avgHumidity > 70) {
+    } else if (currentHumidity > 70) {
       label = "Moderate risk";
       recommendation = "Humidity is rising, so the risk increases more and more.";
     }
@@ -155,7 +163,7 @@ function Energy() {
       recommendation,
       bars: [tempRisk, humidityRisk, combinedRisk],
     };
-  }, [history, stats]);
+  }, [history, stats, latestReading]);
 
   const buildSmoothPath = (points) => {
     if (points.length === 0) return "";
