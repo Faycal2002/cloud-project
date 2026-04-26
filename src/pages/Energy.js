@@ -2,6 +2,30 @@ import { useEffect, useMemo, useState } from "react";
 import SideMenu from "../components/SideMenu";
 import { api } from "../utils/api";
 
+const SAMPLE_HISTORY = [
+  {
+    temperature: 28,
+    humidity: 54,
+    device_id: "sample-device-1",
+    alert_message: "OK",
+    created_at: "2026-04-26T00:00:00Z",
+  },
+  {
+    temperature: 31,
+    humidity: 58,
+    device_id: "sample-device-1",
+    alert_message: "WARNING: High temperature detected",
+    created_at: "2026-04-26T00:05:00Z",
+  },
+  {
+    temperature: 34,
+    humidity: 66,
+    device_id: "sample-device-1",
+    alert_message: "CRITICAL: High temperature and high humidity detected",
+    created_at: "2026-04-26T00:10:00Z",
+  },
+];
+
 function Energy() {
   const [history, setHistory] = useState([]);
   const [error, setError] = useState("");
@@ -17,7 +41,8 @@ function Energy() {
         setError("");
       } catch (err) {
         if (!mounted) return;
-        setError(err.message || "Failed to load energy data");
+        setHistory(SAMPLE_HISTORY);
+        setError("Fallback mode: backend not reachable, showing sample data.");
       }
     };
 
@@ -116,6 +141,46 @@ function Energy() {
   const wheelPercent = okPercent;
   const wheelOffset = 440 - (440 * wheelPercent) / 100;
 
+  const aiInsight = useMemo(() => {
+    if (history.length === 0) {
+      return {
+        score: 0,
+        label: "No data yet",
+        recommendation: "Waiting for readings before generating a simple risk estimate.",
+        bars: [0, 0, 0],
+      };
+    }
+
+    const avgTemp = stats.avgTemp;
+    const avgHumidity = stats.avgHumidity;
+    const tempRisk = avgTemp <= 30 ? 10 : Math.min(60, 10 + Math.round((avgTemp - 30) * 3));
+    const humidityRisk = avgHumidity <= 70 ? 5 : Math.min(60, 5 + Math.round((avgHumidity - 70) * 3));
+    const combinedRisk = avgTemp > 30 && avgHumidity > 70 ? 45 : 0;
+    const alertPressure = Math.min(20, Math.round((stats.criticalCount / history.length) * 20));
+    const score = Math.min(100, tempRisk + humidityRisk + combinedRisk + alertPressure);
+
+    let label = "Low risk";
+    let recommendation = "Temperature and humidity are within a stable range.";
+
+    if (avgTemp > 30 && avgHumidity > 60) {
+      label = "High risk";
+      recommendation = "Temperature and humidity are both high, so the risk increases a lot.";
+    } else if (avgTemp > 30) {
+      label = "Moderate risk";
+      recommendation = "Temperature is rising, so the risk increases more and more.";
+    } else if (avgHumidity > 70) {
+      label = "Moderate risk";
+      recommendation = "Humidity is rising, so the risk increases more and more.";
+    }
+
+    return {
+      score,
+      label,
+      recommendation,
+      bars: [tempRisk, humidityRisk, combinedRisk],
+    };
+  }, [history, stats]);
+
   const buildSmoothPath = (points) => {
     if (points.length === 0) return "";
     if (points.length === 1) {
@@ -154,7 +219,7 @@ function Energy() {
         </div>
 
         {error && (
-          <div className="mb-6 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <div className="mb-6 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
             {error}
           </div>
         )}
@@ -181,7 +246,7 @@ function Energy() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <section className="bg-white p-5 rounded-lg border border-gray-200">
             <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
               <div>
@@ -273,6 +338,59 @@ function Energy() {
                 <span className="text-gray-700 font-medium">Critical</span>
                 <span className="text-gray-700 font-semibold">{chartData.statusCounts.critical}</span>
               </div>
+            </div>
+          </section>
+
+          <section className="bg-white p-5 rounded-lg border border-gray-200">
+            <div className="flex items-center justify-between gap-3 mb-2">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Risk Insight</h3>
+                <p className="text-sm text-gray-500">Simple risk logic based on temperature and humidity thresholds</p>
+              </div>
+              <span className="rounded-full bg-indigo-100 px-3 py-1 text-xs font-semibold text-indigo-700">
+                Fallback data
+              </span>
+            </div>
+
+            <div className="rounded-2xl bg-gradient-to-br from-slate-900 to-slate-700 p-5 text-white mb-5">
+              <div className="flex items-end justify-between gap-4">
+                <div>
+                  <p className="text-sm text-slate-300">Risk score</p>
+                  <div className="mt-1 text-4xl font-bold">{aiInsight.score}%</div>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm text-slate-300">Status</p>
+                  <p className="mt-1 text-lg font-semibold">{aiInsight.label}</p>
+                </div>
+              </div>
+
+              <div className="mt-4 h-2 rounded-full bg-white/15 overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-emerald-400 transition-all"
+                  style={{ width: `${aiInsight.score}%` }}
+                />
+              </div>
+
+              <p className="mt-4 text-sm leading-6 text-slate-200">
+                {aiInsight.recommendation}
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              {["Temperature risk", "Humidity risk", "Combined risk"].map((label, index) => (
+                <div key={label}>
+                  <div className="mb-1 flex items-center justify-between text-sm">
+                    <span className="font-medium text-gray-700">{label}</span>
+                    <span className="font-semibold text-gray-900">{aiInsight.bars[index]}%</span>
+                  </div>
+                  <div className="h-3 rounded-full bg-gray-100 overflow-hidden">
+                    <div
+                      className={`h-full rounded-full ${index === 0 ? 'bg-amber-500' : index === 1 ? 'bg-cyan-500' : 'bg-rose-500'}`}
+                      style={{ width: `${aiInsight.bars[index]}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
             </div>
           </section>
         </div>

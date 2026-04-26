@@ -1,6 +1,7 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { api } from '../utils/api';
 import { useEffect, useRef, useState } from 'react';
+import leafGreen from '../assets/leaf-green.svg';
 
 function Navbar() {
     const location = useLocation();
@@ -60,14 +61,15 @@ function Navbar() {
     };
 
     return (
-        <nav className="bg-gray-800 px-8 py-4 flex justify-between items-center">
+        <nav className="relative z-50 bg-gray-800 px-8 py-4 flex justify-between items-center">
             <div>
-                <Link to="/" className="text-white text-2xl font-bold hover:text-blue-400 transition">
-                    Industrial Control
+                <Link to="/" className="flex items-center gap-3 text-white text-2xl font-bold hover:text-blue-400 transition">
+                    <span>Industrial Control</span>
+                    <img src={leafGreen} alt="Green leaf" className="h-8 w-8 drop-shadow-sm" />
                 </Link>
             </div>
             {isAppPage && (
-                <div className="relative" ref={menuRef}>
+                <div className="relative z-50" ref={menuRef}>
                     <button
                         type="button"
                         onClick={() => setMenuOpen((previous) => !previous)}
@@ -88,7 +90,7 @@ function Navbar() {
                     </button>
 
                     {menuOpen && (
-                        <div className="absolute right-0 mt-3 w-64 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xl">
+                        <div className="absolute right-0 mt-3 w-64 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xl z-50">
                             <div className="flex items-center gap-3 border-b border-gray-100 px-4 py-4">
                                 <div className="flex h-11 w-11 items-center justify-center rounded-full bg-blue-600 text-sm font-bold text-white">
                                     {initials}
