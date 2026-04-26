@@ -133,15 +133,13 @@ function Energy() {
     const tempOver = Math.max(0, currentTemp - 30);
     const humidityOver = Math.max(0, currentHumidity - 70);
 
-    const tempRisk = Math.min(50, Math.round(tempOver * 6));
-    const humidityRisk = Math.min(50, Math.round(humidityOver * 3));
+    const tempRisk = tempOver > 0 ? Math.min(50, 10 + Math.round(tempOver * 4)) : 0;
+    const humidityRisk = humidityOver > 0 ? Math.min(50, 10 + Math.round(humidityOver * 3)) : 0;
     const combinedRisk = tempOver > 0 && humidityOver > 0
-      ? Math.min(40, 15 + Math.round((tempOver * humidityOver) / 2))
+      ? Math.min(30, 10 + Math.round((tempOver + humidityOver) * 1.5))
       : 0;
 
-    const latestMessage = latestReading?.alert_message || "";
-    const alertPressure = latestMessage.startsWith("CRITICAL") ? 20 : latestMessage.startsWith("WARNING") ? 10 : 0;
-    const score = Math.min(100, tempRisk + humidityRisk + combinedRisk + alertPressure);
+    const score = Math.min(100, tempRisk + humidityRisk + combinedRisk);
 
     let label = "Low risk";
     let recommendation = "Temperature and humidity are within a stable range.";
@@ -155,6 +153,12 @@ function Energy() {
     } else if (currentHumidity > 70) {
       label = "Moderate risk";
       recommendation = "Humidity is rising, so the risk increases more and more.";
+    }
+
+    if (score >= 80) {
+      label = "High risk";
+    } else if (score >= 35 && label === "Low risk") {
+      label = "Moderate risk";
     }
 
     return {
@@ -361,7 +365,7 @@ function Energy() {
             </div>
 
             <div className="space-y-4">
-              {["Temperature risk", "Humidity risk", "Combined risk"].map((label, index) => (
+              {["Temperature risk", "Humidity risk", "Boost risk (both high)"].map((label, index) => (
                 <div key={label}>
                   <div className="mb-1 flex items-center justify-between text-sm">
                     <span className="font-medium text-gray-700">{label}</span>
