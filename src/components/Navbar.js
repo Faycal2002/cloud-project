@@ -61,11 +61,11 @@ function Navbar() {
     };
 
     return (
-        <nav className="relative z-50 bg-gray-800 px-8 py-4 flex justify-between items-center">
+        <nav className="relative z-50 bg-gray-800 px-3 sm:px-5 md:px-8 py-3 md:py-4 flex items-center justify-between gap-3">
             <div>
-                <Link to="/" className="flex items-center gap-3 text-white text-2xl font-bold hover:text-blue-400 transition">
-                    <span>Industrial Control</span>
-                    <img src={leafGreen} alt="Green leaf" className="h-8 w-8 drop-shadow-sm" />
+                <Link to="/" className="flex items-center gap-2 md:gap-3 text-white text-lg sm:text-xl md:text-2xl font-bold hover:text-blue-400 transition">
+                    <span className="whitespace-nowrap">Industrial Control</span>
+                    <img src={leafGreen} alt="Green leaf" className="h-6 w-6 md:h-8 md:w-8 drop-shadow-sm" />
                 </Link>
             </div>
             {isAppPage && (
@@ -73,14 +73,14 @@ function Navbar() {
                     <button
                         type="button"
                         onClick={() => setMenuOpen((previous) => !previous)}
-                        className="flex items-center gap-3 rounded-full border border-white/10 bg-white/5 px-3 py-2 text-left text-white shadow-sm transition hover:bg-white/10"
+                        className="flex items-center gap-2 md:gap-3 rounded-full border border-white/10 bg-white/5 px-2 sm:px-3 py-2 text-left text-white shadow-sm transition hover:bg-white/10"
                     >
-                        <span className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-600 text-sm font-bold text-white">
+                        <span className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-full bg-blue-600 text-xs sm:text-sm font-bold text-white">
                             {initials}
                         </span>
 
-                        <span className="flex flex-col leading-tight">
-                            <span className="text-sm font-semibold text-white">{displayName}</span>
+                        <span className="hidden sm:flex max-w-[120px] md:max-w-[180px] flex-col leading-tight">
+                            <span className="truncate text-sm font-semibold text-white">{displayName}</span>
                             <span className="text-xs text-gray-300">Account</span>
                         </span>
 
@@ -90,7 +90,7 @@ function Navbar() {
                     </button>
 
                     {menuOpen && (
-                        <div className="absolute right-0 mt-3 w-64 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xl z-50">
+                        <div className="absolute right-0 mt-3 w-[92vw] max-w-64 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xl z-50">
                             <div className="flex items-center gap-3 border-b border-gray-100 px-4 py-4">
                                 <div className="flex h-11 w-11 items-center justify-center rounded-full bg-blue-600 text-sm font-bold text-white">
                                     {initials}
