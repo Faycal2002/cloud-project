@@ -161,6 +161,7 @@ CORS_ALLOW_ALL_ORIGINS = False  # ⚠️ obligatoire avec credentials
 
 CORS_ALLOWED_ORIGINS = [
     "https://fayfront-c5h8eqete4dxgtcx.uksouth-01.azurewebsites.net",
+    "https://fayback-e9h3f0c0fbfhgkar.uksouth-01.azurewebsites.net",
 ]
 
 CORS_ALLOW_CREDENTIALS = True
@@ -188,6 +189,7 @@ CORS_ALLOW_METHODS = [
 
 CSRF_TRUSTED_ORIGINS = [
     "https://fayfront-c5h8eqete4dxgtcx.uksouth-01.azurewebsites.net",
+    "https://fayback-e9h3f0c0fbfhgkar.uksouth-01.azurewebsites.net",
 ]
 
 SESSION_COOKIE_SAMESITE = "None"
