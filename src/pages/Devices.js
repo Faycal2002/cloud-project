@@ -9,15 +9,34 @@ function Devices() {
   const [error, setError] = useState("");
   const [showHistory, setShowHistory] = useState(false);
   const [selectedDevice, setSelectedDevice] = useState("sensor");
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    try {
+      const rawUser = localStorage.getItem("cloudProjectUser");
+      const user = rawUser ? JSON.parse(rawUser) : null;
+      const hasAdminRole = Boolean(user?.isAdmin || user?.role === "admin");
+      setIsAdmin(hasAdminRole);
+    } catch {
+      setIsAdmin(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isAdmin && selectedDevice === "camera") {
+      setSelectedDevice("sensor");
+    }
+  }, [isAdmin, selectedDevice]);
 
   useEffect(() => {
     let mounted = true;
 
     const loadReadings = async () => {
       try {
+        const cameraRequest = isAdmin ? api.getCameraEvents() : Promise.resolve([]);
         const [sensorData, cameraData] = await Promise.all([
           api.getReadingsHistory(),
-          api.getCameraEvents(),
+          cameraRequest,
         ]);
 
         if (!mounted) return;
@@ -37,7 +56,7 @@ function Devices() {
       mounted = false;
       clearInterval(intervalId);
     };
-  }, []);
+  }, [isAdmin]);
 
   const getStatus = (message = "") => {
     if (message.startsWith("CRITICAL")) return "CRITICAL";
@@ -98,18 +117,20 @@ function Devices() {
             <p className="text-sm text-gray-600 mt-1">Sensor (temperature / humidity)</p>
           </button>
 
-          <button
-            type="button"
-            onClick={() => {
-              setSelectedDevice("camera");
-              setShowHistory(true);
-            }}
-            className={`text-left rounded-xl border p-4 transition ${selectedDevice === "camera" ? "border-blue-400 bg-blue-50" : "border-gray-200 bg-white hover:border-gray-300"}`}
-          >
-            <p className="text-sm text-gray-500">Device</p>
-            <h3 className="text-xl font-semibold text-gray-900">camera-1</h3>
-            <p className="text-sm text-gray-600 mt-1">Camera (movement photos in Blob Storage)</p>
-          </button>
+          {isAdmin && (
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedDevice("camera");
+                setShowHistory(true);
+              }}
+              className={`text-left rounded-xl border p-4 transition ${selectedDevice === "camera" ? "border-blue-400 bg-blue-50" : "border-gray-200 bg-white hover:border-gray-300"}`}
+            >
+              <p className="text-sm text-gray-500">Device</p>
+              <h3 className="text-xl font-semibold text-gray-900">camera-1</h3>
+              <p className="text-sm text-gray-600 mt-1">Camera (movement photos in Blob Storage)</p>
+            </button>
+          )}
         </div>
 
         <button
@@ -167,7 +188,7 @@ function Devices() {
                   )}
                   <th className="px-2 py-4 text-left">Status</th>
                   <th className="px-2 py-4 text-left">Details</th>
-                  <th className="px-2 py-4 text-left">Date et heure</th>
+                  <th className="px-2 py-4 text-left">Date and time</th>
                 </tr>
               </thead>
               <tbody className="text-gray-700">
