@@ -107,9 +107,9 @@ export const api = {
             method: "DELETE",
         }),
 
-    // 📷 IMAGES
+    // 📷 IMAGES (camera events + CRUD)
     getImages: () =>
-        request(`${API_URL}/images/`),
+        request(`${API_URL}/images/`, { method: "GET" }),
 
     createImage: (payload) =>
         request(`${API_URL}/images/`, {
@@ -118,20 +118,20 @@ export const api = {
         }),
 
     getImage: (id) =>
-        request(`${API_URL}/images/${id}/`),
+        request(`${API_URL}/images/crud/${id}/`, { method: "GET" }),
 
     updateImage: (id, payload) =>
-        request(`${API_URL}/images/${id}/`, {
+        request(`${API_URL}/images/crud/${id}/`, {
             method: "PUT",
             body: JSON.stringify(payload),
         }),
 
     deleteImage: (id) =>
-        request(`${API_URL}/images/${id}/`, {
+        request(`${API_URL}/images/crud/${id}/`, {
             method: "DELETE",
         }),
 
-    // 🔥 AJOUT IMPORTANT (corrige ton erreur)
+    // Backward-compatible alias used by Devices.js
     getCameraEvents: () =>
         request(`${API_URL}/images/`, {
             method: "GET",
