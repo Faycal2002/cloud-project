@@ -17,7 +17,8 @@ function Energy() {
         setError("");
       } catch (err) {
         if (!mounted) return;
-        setError(err.message || "Failed to load energy data");
+        setHistory([]);
+        setError("No live data available right now.");
       }
     };
 
@@ -116,6 +117,58 @@ function Energy() {
   const wheelPercent = okPercent;
   const wheelOffset = 440 - (440 * wheelPercent) / 100;
 
+  const aiInsight = useMemo(() => {
+    if (history.length === 0) {
+      return {
+        score: 0,
+        label: "No data yet",
+        recommendation: "Waiting for readings before generating a simple risk estimate.",
+        bars: [0, 0, 0],
+      };
+    }
+
+    const currentTemp = Number(latestReading?.temperature ?? stats.avgTemp ?? 0);
+    const currentHumidity = Number(latestReading?.humidity ?? stats.avgHumidity ?? 0);
+
+    const tempOver = Math.max(0, currentTemp - 30);
+    const humidityOver = Math.max(0, currentHumidity - 70);
+
+    const tempRisk = tempOver > 0 ? Math.min(50, 10 + Math.round(tempOver * 4)) : 0;
+    const humidityRisk = humidityOver > 0 ? Math.min(50, 10 + Math.round(humidityOver * 3)) : 0;
+    const combinedRisk = tempOver > 0 && humidityOver > 0
+      ? Math.min(30, 10 + Math.round((tempOver + humidityOver) * 1.5))
+      : 0;
+
+    const score = Math.min(100, tempRisk + humidityRisk + combinedRisk);
+
+    let label = "Low risk";
+    let recommendation = "Temperature and humidity are within a stable range.";
+
+    if (currentTemp > 30 && currentHumidity > 70) {
+      label = "High risk";
+      recommendation = "Temperature and humidity are both high, so the risk increases a lot.";
+    } else if (currentTemp > 30) {
+      label = "Moderate risk";
+      recommendation = "Temperature is rising, so the risk increases more and more.";
+    } else if (currentHumidity > 70) {
+      label = "Moderate risk";
+      recommendation = "Humidity is rising, so the risk increases more and more.";
+    }
+
+    if (score >= 80) {
+      label = "High risk";
+    } else if (score >= 35 && label === "Low risk") {
+      label = "Moderate risk";
+    }
+
+    return {
+      score,
+      label,
+      recommendation,
+      bars: [tempRisk, humidityRisk, combinedRisk],
+    };
+  }, [history, stats, latestReading]);
+
   const buildSmoothPath = (points) => {
     if (points.length === 0) return "";
     if (points.length === 1) {
@@ -154,7 +207,7 @@ function Energy() {
         </div>
 
         {error && (
-          <div className="mb-6 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <div className="mb-6 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
             {error}
           </div>
         )}
@@ -181,7 +234,7 @@ function Energy() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <section className="bg-white p-5 rounded-lg border border-gray-200">
             <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
               <div>
@@ -273,6 +326,59 @@ function Energy() {
                 <span className="text-gray-700 font-medium">Critical</span>
                 <span className="text-gray-700 font-semibold">{chartData.statusCounts.critical}</span>
               </div>
+            </div>
+          </section>
+
+          <section className="bg-white p-5 rounded-lg border border-gray-200">
+            <div className="flex items-center justify-between gap-3 mb-2">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Risk Insight</h3>
+                <p className="text-sm text-gray-500">Simple risk logic based on temperature and humidity thresholds</p>
+              </div>
+              <span className="rounded-full bg-indigo-100 px-3 py-1 text-xs font-semibold text-indigo-700">
+                Live logic
+              </span>
+            </div>
+
+            <div className="rounded-2xl bg-gradient-to-br from-slate-900 to-slate-700 p-5 text-white mb-5">
+              <div className="flex items-end justify-between gap-4">
+                <div>
+                  <p className="text-sm text-slate-300">Risk score</p>
+                  <div className="mt-1 text-4xl font-bold">{aiInsight.score}%</div>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm text-slate-300">Status</p>
+                  <p className="mt-1 text-lg font-semibold">{aiInsight.label}</p>
+                </div>
+              </div>
+
+              <div className="mt-4 h-2 rounded-full bg-white/15 overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-emerald-400 transition-all"
+                  style={{ width: `${aiInsight.score}%` }}
+                />
+              </div>
+
+              <p className="mt-4 text-sm leading-6 text-slate-200">
+                {aiInsight.recommendation}
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              {["Temperature risk", "Humidity risk", "Boost risk (both high)"].map((label, index) => (
+                <div key={label}>
+                  <div className="mb-1 flex items-center justify-between text-sm">
+                    <span className="font-medium text-gray-700">{label}</span>
+                    <span className="font-semibold text-gray-900">{aiInsight.bars[index]}%</span>
+                  </div>
+                  <div className="h-3 rounded-full bg-gray-100 overflow-hidden">
+                    <div
+                      className={`h-full rounded-full ${index === 0 ? 'bg-amber-500' : index === 1 ? 'bg-cyan-500' : 'bg-rose-500'}`}
+                      style={{ width: `${aiInsight.bars[index]}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
             </div>
           </section>
         </div>

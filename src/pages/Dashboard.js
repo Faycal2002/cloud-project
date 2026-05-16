@@ -117,7 +117,7 @@ function Dashboard() {
   return (
     <div className="flex min-h-screen relative">
 
-      <div className="absolute top-5 right-5">
+      <div className="absolute top-5 right-5 z-10">
         <button
           onClick={() => setShowNotifications(!showNotifications)}
           className="relative text-2xl"
